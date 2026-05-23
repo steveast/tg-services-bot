@@ -1,5 +1,9 @@
 import { DatabaseSync } from 'node:sqlite';
+import { mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { config } from '../config.js';
+
+mkdirSync(dirname(config.dbPath), { recursive: true });
 
 export const db = new DatabaseSync(config.dbPath);
 db.exec('PRAGMA journal_mode = WAL');

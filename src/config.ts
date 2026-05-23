@@ -11,5 +11,5 @@ export const config = {
   travelpayoutsToken: required('TRAVELPAYOUTS_TOKEN'),
   groupChatId: Number(required('GROUP_CHAT_ID')),
   flightsIntervalMin: Number(process.env.FLIGHTS_INTERVAL_MIN ?? '240'),
-  dbPath: process.env.DB_PATH ?? 'bot.db',
+  dbPath: process.env.DB_PATH ?? 'data/bot.db',
 };

@@ -83,7 +83,8 @@ export async function searchFlights(sub: FlightSubscription): Promise<FlightOffe
       const dep = new Date(offer.departureAt);
       return dep >= today && dep <= cutoff && offer.price <= sub.maxPrice;
     })
-    .sort((a, b) => a.price - b.price);
+    .sort((a, b) => a.price - b.price)
+    .slice(0, 1);
 }
 
 function startOfDay(d: Date): Date {
