@@ -69,11 +69,13 @@ export async function searchFlights(sub: FlightSubscription): Promise<FlightOffe
         origin: item.origin,
         originAirport: item.origin_airport,
         destination: item.destination,
+        destinationAirport: item.destination_airport,
         price: item.price,
         airline: item.airline,
         flightNumber: item.flight_number,
         departureAt: item.departure_at,
         transfers: item.transfers,
+        duration: item.duration,
         link: `https://www.aviasales.ru${item.link}`,
       });
     }
@@ -84,8 +86,7 @@ export async function searchFlights(sub: FlightSubscription): Promise<FlightOffe
       const dep = new Date(offer.departureAt);
       return dep >= today && dep <= cutoff && offer.price <= sub.maxPrice;
     })
-    .sort((a, b) => a.price - b.price)
-    .slice(0, 3);
+    .sort((a, b) => a.price - b.price);
 }
 
 function startOfDay(d: Date): Date {

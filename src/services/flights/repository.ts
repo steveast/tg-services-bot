@@ -15,13 +15,15 @@ const selectStmt = db.prepare(`
 
 const upsertStmt = db.prepare(`
   INSERT INTO flight_offers
-    (subscription_id, origin, origin_airport, destination, departure_at, airline, flight_number, transfers, price, link, first_seen_at, last_seen_at)
+    (subscription_id, origin, origin_airport, destination, destination_airport, departure_at, airline, flight_number, transfers, duration, price, link, first_seen_at, last_seen_at)
   VALUES
-    (@subscription_id, @origin, @origin_airport, @destination, @departure_at, @airline, @flight_number, @transfers, @price, @link, @now, @now)
+    (@subscription_id, @origin, @origin_airport, @destination, @destination_airport, @departure_at, @airline, @flight_number, @transfers, @duration, @price, @link, @now, @now)
   ON CONFLICT(subscription_id, departure_at, airline, flight_number) DO UPDATE SET
     origin_airport = excluded.origin_airport,
+    destination_airport = excluded.destination_airport,
     price = excluded.price,
     transfers = excluded.transfers,
+    duration = excluded.duration,
     link = excluded.link,
     last_seen_at = excluded.last_seen_at
 `);
@@ -31,7 +33,7 @@ const latestSeenStmt = db.prepare(`
 `);
 
 const latestOffersStmt = db.prepare(`
-  SELECT origin, origin_airport, destination, departure_at, airline, flight_number, transfers, price, link, last_seen_at
+  SELECT origin, origin_airport, destination, destination_airport, departure_at, airline, flight_number, transfers, duration, price, link, last_seen_at
   FROM flight_offers
   WHERE subscription_id = ? AND last_seen_at >= ? AND price <= ?
   ORDER BY price ASC
@@ -52,10 +54,12 @@ export function getLatestOffers(subscriptionId: string, maxPrice: number, limit:
     origin: string;
     origin_airport: string | null;
     destination: string;
+    destination_airport: string | null;
     departure_at: string;
     airline: string;
     flight_number: string;
     transfers: number;
+    duration: number | null;
     price: number;
     link: string;
     last_seen_at: number;
@@ -65,11 +69,13 @@ export function getLatestOffers(subscriptionId: string, maxPrice: number, limit:
       origin: r.origin,
       originAirport: r.origin_airport ?? r.origin,
       destination: r.destination,
+      destinationAirport: r.destination_airport ?? r.destination,
       price: r.price,
       airline: r.airline,
       flightNumber: r.flight_number,
       departureAt: r.departure_at,
       transfers: r.transfers,
+      duration: r.duration ?? 0,
       link: r.link,
     },
     lastSeenAt: r.last_seen_at,
@@ -86,10 +92,12 @@ export function recordOffer(subscriptionId: string, offer: FlightOffer): OfferOu
     origin: offer.origin,
     origin_airport: offer.originAirport,
     destination: offer.destination,
+    destination_airport: offer.destinationAirport,
     departure_at: offer.departureAt,
     airline: offer.airline,
     flight_number: offer.flightNumber,
     transfers: offer.transfers,
+    duration: offer.duration,
     price: offer.price,
     link: offer.link,
     now,

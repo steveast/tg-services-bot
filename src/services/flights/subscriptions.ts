@@ -13,6 +13,7 @@ export const subscriptions: FlightSubscription[] = [
     passengers: family,
     currency: 'rub',
     directOnly: true,
+    feeder: { origin: 'IJK' },
   },
   {
     id: 'mow-bangkok',
@@ -22,5 +23,6 @@ export const subscriptions: FlightSubscription[] = [
     passengers: family,
     currency: 'rub',
     directOnly: true,
+    feeder: { origin: 'IJK' },
   },
 ];

@@ -11,16 +11,23 @@ export interface FlightSubscription {
   passengers: PassengerGroup;
   currency: string;
   directOnly?: boolean;
+  // Фидер-связка: при пуше оффера по этой подписке приложить билеты
+  // feeder.origin → origin (как долететь к вылету), стыкуя аэропорт прилёта
+  // фидера с аэропортом вылета целевого рейса. Не самостоятельная подписка —
+  // ищется только в момент пуша, в БД не пишется.
+  feeder?: { origin: string };
 }
 
 export interface FlightOffer {
   origin: string;
   originAirport: string;
   destination: string;
+  destinationAirport: string;
   price: number;
   airline: string;
   flightNumber: string;
   departureAt: string;
   transfers: number;
+  duration: number; // время в пути, минуты — для расчёта прилёта при стыковке
   link: string;
 }

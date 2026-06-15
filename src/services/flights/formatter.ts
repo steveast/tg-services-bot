@@ -75,6 +75,35 @@ export function buildLatestBlock(
   return `${header}\n${lines.join('\n')}`;
 }
 
+// Блок «как долететь к вылету» — фидер feederOrigin → аэропорт вылета целевого
+// рейса, приложенный к офферу. Аэропорт прибытия фидера уже состыкован с
+// аэропортом вылета target вызывающим кодом.
+export function buildFeederBlock(
+  feederOrigin: string,
+  target: FlightOffer,
+  feeders: FlightOffer[],
+  passengers: PassengerGroup,
+  currency: string,
+): string {
+  const cur = currency.toUpperCase();
+  const seats = totalSeats(passengers);
+  const targetAirport = target.originAirport || target.origin;
+  const targetDate = formatDepartureDate(target.departureAt);
+  const header = `🔗 Долететь ${feederOrigin} → ${targetAirport} к рейсу ${targetDate}:`;
+  const lines = feeders.map((offer) => {
+    const total = formatPrice(offer.price * seats);
+    const price = formatPrice(offer.price);
+    const date = formatDepartureDate(offer.departureAt);
+    const time = formatDepartureTime(offer.departureAt);
+    const transfers = offer.transfers === 0 ? 'прямой' : `${offer.transfers} пересад.`;
+    return [
+      `• <b>≈ ${total} ${cur}</b> — ${date} ${time} MSK, ${offer.airline} ${offer.flightNumber}, ${transfers}`,
+      `  ${price} ${cur}/билет — <a href="${offer.link}">открыть</a>`,
+    ].join('\n');
+  });
+  return `${header}\n${lines.join('\n')}`;
+}
+
 export function chunkMessages(parts: string[], maxChars = MAX_MESSAGE_CHARS): string[] {
   const messages: string[] = [];
   let current = '';

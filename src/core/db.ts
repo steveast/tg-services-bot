@@ -14,10 +14,12 @@ db.exec(`
     origin TEXT NOT NULL,
     origin_airport TEXT,
     destination TEXT NOT NULL,
+    destination_airport TEXT,
     departure_at TEXT NOT NULL,
     airline TEXT NOT NULL,
     flight_number TEXT NOT NULL,
     transfers INTEGER NOT NULL,
+    duration INTEGER,
     price INTEGER NOT NULL,
     link TEXT NOT NULL,
     first_seen_at INTEGER NOT NULL,
@@ -28,6 +30,7 @@ db.exec(`
 
 // Миграция для БД, созданных до появления origin_airport.
 const cols = db.prepare('PRAGMA table_info(flight_offers)').all() as Array<{ name: string }>;
-if (!cols.some((c) => c.name === 'origin_airport')) {
-  db.exec('ALTER TABLE flight_offers ADD COLUMN origin_airport TEXT');
-}
+const hasColumn = (name: string) => cols.some((c) => c.name === name);
+if (!hasColumn('origin_airport')) db.exec('ALTER TABLE flight_offers ADD COLUMN origin_airport TEXT');
+if (!hasColumn('destination_airport')) db.exec('ALTER TABLE flight_offers ADD COLUMN destination_airport TEXT');
+if (!hasColumn('duration')) db.exec('ALTER TABLE flight_offers ADD COLUMN duration INTEGER');
