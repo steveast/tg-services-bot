@@ -23,13 +23,4 @@ export const subscriptions: FlightSubscription[] = [
     currency: 'rub',
     directOnly: true,
   },
-  {
-    id: 'izhevsk-mow',
-    origin: 'IJK',
-    destination: 'MOW',
-    maxPrice: 8000,
-    passengers: family,
-    currency: 'rub',
-    directOnly: true,
-  },
 ];
