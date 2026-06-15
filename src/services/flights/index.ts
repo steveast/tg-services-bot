@@ -151,10 +151,6 @@ export class FlightsService implements Service {
           return targetDepMs - arrivalMs >= MIN_CONNECTION_MS;
         })
         .slice(0, MATCHES_PER_SUB);
-      if (feeders.length === 0) {
-        logger.info(`flights[${sub.id}] feeder: нет ${sub.feeder.origin}→${target.originAirport} с зазором ≥5ч`);
-        continue;
-      }
       const text = buildFeederBlock(sub.feeder.origin, target, feeders, sub.passengers, sub.currency);
       try {
         await this.bot.api.sendMessage(config.groupChatId, text, {

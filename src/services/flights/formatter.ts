@@ -90,6 +90,9 @@ export function buildFeederBlock(
   const targetAirport = target.originAirport || target.origin;
   const targetDate = formatDepartureDate(target.departureAt);
   const header = `🔗 Долететь ${feederOrigin} → ${targetAirport} к рейсу ${targetDate}:`;
+  if (feeders.length === 0) {
+    return `${header}\n  связного рейса нет (прямой ${feederOrigin} → ${targetAirport} с зазором ≥ 5 ч не найден)`;
+  }
   const lines = feeders.map((offer) => {
     const total = formatPrice(offer.price * seats);
     const price = formatPrice(offer.price);
