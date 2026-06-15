@@ -67,6 +67,7 @@ export async function searchFlights(sub: FlightSubscription): Promise<FlightOffe
     for (const item of body.data) {
       collected.push({
         origin: item.origin,
+        originAirport: item.origin_airport,
         destination: item.destination,
         price: item.price,
         airline: item.airline,
@@ -84,7 +85,7 @@ export async function searchFlights(sub: FlightSubscription): Promise<FlightOffe
       return dep >= today && dep <= cutoff && offer.price <= sub.maxPrice;
     })
     .sort((a, b) => a.price - b.price)
-    .slice(0, 1);
+    .slice(0, 3);
 }
 
 function startOfDay(d: Date): Date {

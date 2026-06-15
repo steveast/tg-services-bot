@@ -15,10 +15,11 @@ const selectStmt = db.prepare(`
 
 const upsertStmt = db.prepare(`
   INSERT INTO flight_offers
-    (subscription_id, origin, destination, departure_at, airline, flight_number, transfers, price, link, first_seen_at, last_seen_at)
+    (subscription_id, origin, origin_airport, destination, departure_at, airline, flight_number, transfers, price, link, first_seen_at, last_seen_at)
   VALUES
-    (@subscription_id, @origin, @destination, @departure_at, @airline, @flight_number, @transfers, @price, @link, @now, @now)
+    (@subscription_id, @origin, @origin_airport, @destination, @departure_at, @airline, @flight_number, @transfers, @price, @link, @now, @now)
   ON CONFLICT(subscription_id, departure_at, airline, flight_number) DO UPDATE SET
+    origin_airport = excluded.origin_airport,
     price = excluded.price,
     transfers = excluded.transfers,
     link = excluded.link,
@@ -30,7 +31,7 @@ const latestSeenStmt = db.prepare(`
 `);
 
 const latestOffersStmt = db.prepare(`
-  SELECT origin, destination, departure_at, airline, flight_number, transfers, price, link, last_seen_at
+  SELECT origin, origin_airport, destination, departure_at, airline, flight_number, transfers, price, link, last_seen_at
   FROM flight_offers
   WHERE subscription_id = ? AND last_seen_at >= ? AND price <= ?
   ORDER BY price ASC
@@ -49,6 +50,7 @@ export function getLatestOffers(subscriptionId: string, maxPrice: number, limit:
   const windowStart = maxSeen - 5 * 60 * 1000;
   const rows = latestOffersStmt.all(subscriptionId, windowStart, maxPrice, limit) as Array<{
     origin: string;
+    origin_airport: string | null;
     destination: string;
     departure_at: string;
     airline: string;
@@ -61,6 +63,7 @@ export function getLatestOffers(subscriptionId: string, maxPrice: number, limit:
   return rows.map((r) => ({
     offer: {
       origin: r.origin,
+      originAirport: r.origin_airport ?? r.origin,
       destination: r.destination,
       price: r.price,
       airline: r.airline,
@@ -81,6 +84,7 @@ export function recordOffer(subscriptionId: string, offer: FlightOffer): OfferOu
   upsertStmt.run({
     subscription_id: subscriptionId,
     origin: offer.origin,
+    origin_airport: offer.originAirport,
     destination: offer.destination,
     departure_at: offer.departureAt,
     airline: offer.airline,

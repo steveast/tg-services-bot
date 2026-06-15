@@ -23,4 +23,15 @@ export const subscriptions: FlightSubscription[] = [
     currency: 'rub',
     directOnly: true,
   },
+  {
+    id: 'izhevsk-mow',
+    origin: 'IJK',
+    destination: 'MOW',
+    maxPrice: 10000,
+    passengers: family,
+    currency: 'rub',
+    directOnly: true,
+    // Стыковка к большому перелёту: показываем только вместе с матчем по Камрани/Бангкоку.
+    gatedBy: ['mow-nha-trang', 'mow-bangkok'],
+  },
 ];

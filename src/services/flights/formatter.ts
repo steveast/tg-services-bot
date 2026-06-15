@@ -66,8 +66,9 @@ export function buildLatestBlock(
     const date = formatDepartureDate(offer.departureAt);
     const time = formatDepartureTime(offer.departureAt);
     const transfers = offer.transfers === 0 ? 'прямой' : `${offer.transfers} пересад.`;
+    const airport = offer.originAirport || offer.origin;
     return [
-      `• <b>≈ ${total} ${currency}</b> — ${date} ${time} MSK, ${offer.airline} ${offer.flightNumber}, ${transfers}`,
+      `• <b>≈ ${total} ${currency}</b> — ${date} ${time} MSK, вылет ${airport}, ${offer.airline} ${offer.flightNumber}, ${transfers}`,
       `  ${price} ${currency}/билет — <a href="${offer.link}">открыть</a>`,
     ].join('\n');
   });
@@ -97,6 +98,7 @@ function renderLine(scored: ScoredOffer, currency: string, seats: number): strin
   const date = formatDepartureDate(offer.departureAt);
   const time = formatDepartureTime(offer.departureAt);
   const transfers = offer.transfers === 0 ? 'прямой' : `${offer.transfers} пересад.`;
+  const airport = offer.originAirport || offer.origin;
 
   const totalPrefix = status === 'price_drop' && previousPrice
     ? `↓ <b>≈ ${total} ${currency}</b> (было ≈ ${formatPrice(previousPrice * seats)})`
@@ -106,7 +108,7 @@ function renderLine(scored: ScoredOffer, currency: string, seats: number): strin
     : `${price} ${currency}/билет`;
 
   return [
-    `• ${totalPrefix} — ${date} ${time} MSK, ${offer.airline} ${offer.flightNumber}, ${transfers}`,
+    `• ${totalPrefix} — ${date} ${time} MSK, вылет ${airport}, ${offer.airline} ${offer.flightNumber}, ${transfers}`,
     `  ${perTicket} — <a href="${offer.link}">открыть</a>`,
   ].join('\n');
 }
