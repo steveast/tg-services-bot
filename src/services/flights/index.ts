@@ -61,20 +61,9 @@ export class FlightsService implements Service {
     }
     this.running = true;
     try {
-      // Сначала обычные подписки, затем связочные (gatedBy) — чтобы к моменту
-      // их проверки уже знать, нашёлся ли матч по целевым городам.
-      const ordered = [...subscriptions].sort(
-        (a, b) => Number(Boolean(a.gatedBy)) - Number(Boolean(b.gatedBy)),
-      );
-      const matched = new Set<string>();
-      for (const sub of ordered) {
+      for (const sub of subscriptions) {
         try {
-          if (sub.gatedBy && !sub.gatedBy.some((id) => matched.has(id))) {
-            logger.info(`flights[${sub.id}]: gated, no target match this run, skipping`);
-            continue;
-          }
           const offers = await searchFlights(sub);
-          if (offers.length > 0) matched.add(sub.id);
           const scored: ScoredOffer[] = [];
           for (const offer of offers) {
             const outcome = recordOffer(sub.id, offer);
