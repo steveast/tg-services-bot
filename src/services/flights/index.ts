@@ -1,6 +1,6 @@
 import type { Bot, Context } from 'grammy';
 import { config } from '../../config.js';
-import { ownerOnly } from '../../core/access.js';
+import { allowedChatOnly } from '../../core/access.js';
 import { logger } from '../../core/logger.js';
 import type { Service } from '../../core/service.js';
 import { searchFlights } from './aviasales.js';
@@ -29,7 +29,7 @@ export class FlightsService implements Service {
   register(bot: Bot): void {
     bot.command(
       'flights',
-      ownerOnly(async (ctx) => {
+      allowedChatOnly(async (ctx) => {
         await ctx.reply('Запускаю внеплановый поиск авиабилетов…');
         try {
           await this.runOnce();
@@ -40,7 +40,7 @@ export class FlightsService implements Service {
       }),
     );
 
-    bot.command('lastflights', ownerOnly((ctx) => this.replyLatest(ctx)));
+    bot.command('lastflights', allowedChatOnly((ctx) => this.replyLatest(ctx)));
   }
 
   // Показывает вызывающему текущий топ по каждой подписке из БД.
