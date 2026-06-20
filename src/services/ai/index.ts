@@ -39,43 +39,61 @@ export class AiService implements Service {
       await ctx.reply('Контекст очищен — начинаем новый диалог.');
     });
 
-    // Сообщение, начинающееся с «ии», = запрос к Claude (и в группе, и в личке).
-    // Кроме того, в личке владельца на ИИ идёт любое не-командное сообщение.
+    // Когда не-командное сообщение считается запросом к Claude:
+    //  - начинается со слова «ии» (в любом чате);
+    //  - в личке владельца — любое сообщение;
+    //  - в группе — reply на сообщение бота (продолжение диалога).
+    // Контекст реплая (если он есть) подмешивается в respond().
     bot.on('message:text', async (ctx, next) => {
       const text = ctx.message.text;
       if (text.startsWith('/')) return next();
       if (!isAllowedForAi(ctx)) return next();
 
       const viaPrefix = stripAiPrefix(text);
-      if (viaPrefix !== null) {
-        if (!viaPrefix) {
-          await ctx.reply('Спроси что-нибудь после «ии» 🙂');
-          return;
-        }
-        await this.respond(ctx, viaPrefix);
+      const isReplyToBot = ctx.message.reply_to_message?.from?.id === ctx.me.id;
+
+      let question: string | null = null;
+      if (viaPrefix !== null) question = viaPrefix;
+      else if (ctx.chat.type === 'private') question = text;
+      else if (isReplyToBot) question = text;
+
+      if (question === null) return;
+      if (!question) {
+        await ctx.reply('Спроси что-нибудь после «ии» 🙂');
         return;
       }
-
-      // Без префикса «ии» свободный чат работает только в личке владельца;
-      // в группе нужен /ask или префикс «ии».
-      if (ctx.chat?.type === 'private') await this.respond(ctx, text);
+      await this.respond(ctx, question);
     });
   }
 
   start(): void {}
   stop(): void {}
 
-  private async respond(ctx: Context, prompt: string): Promise<void> {
+  private async respond(ctx: Context, question: string): Promise<void> {
     const chatId = ctx.chat?.id;
     if (chatId === undefined) return;
 
+    let prompt = question;
+
+    // Контекст реплая: цитируем сообщение, на которое отвечают. Кроме реплая на
+    // самого бота — его реплики уже в памяти сессии, дублировать не нужно.
+    const reply = ctx.message?.reply_to_message;
+    if (reply && reply.from?.id !== ctx.me.id) {
+      const body = reply.text ?? reply.caption;
+      if (body) {
+        const author = reply.from?.first_name ?? 'кто-то';
+        prompt = `В ответ на сообщение «${author}: ${body}»:\n\n${question}`;
+      }
+    }
+
     // В группе подписываем, кто спрашивает — модель видит, с кем общается.
-    const message =
-      ctx.chat?.type === 'private' ? prompt : `${ctx.from?.first_name ?? 'Пользователь'}: ${prompt}`;
+    if (ctx.chat?.type !== 'private') {
+      prompt = `${ctx.from?.first_name ?? 'Пользователь'}: ${prompt}`;
+    }
 
     try {
       void ctx.replyWithChatAction('typing').catch(() => undefined);
-      const answer = await this.ask(chatId, message);
+      const answer = await this.ask(chatId, prompt);
       for (const chunk of splitForTelegram(answer)) {
         await ctx.reply(chunk, { link_preview_options: { is_disabled: true } });
       }

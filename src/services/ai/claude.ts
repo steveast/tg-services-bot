@@ -8,7 +8,7 @@ import { config } from '../../config.js';
 // поэтому --resume находит диалог только из той же директории.
 const CWD = path.join(os.homedir(), '.tg-services-bot-ai');
 
-const TIMEOUT_MS = 120_000;
+const TIMEOUT_MS = 150_000;
 
 const SYSTEM =
   'Ты — харизматичный и остроумный ассистент в семейном Telegram-чате. ' +
@@ -16,7 +16,8 @@ const SYSTEM =
   'Отвечай полезно и по делу, но с искрой — без канцелярита и занудства. ' +
   'Юмор не в ущерб сути: сначала ответ, потом шутка, если она к месту. ' +
   'На русском (если не просят иначе), кратко, без преамбул вроде «Конечно!». ' +
-  'Инструментов и доступа к файлам у тебя нет — просто отвечай на вопросы.';
+  'У тебя есть веб-поиск (WebSearch/WebFetch) — пользуйся им для свежих фактов ' +
+  '(курсы, погода, новости, цены, расписания). Доступа к файлам и другим инструментам нет.';
 
 // Последовательная очередь: один процесс claude за раз — бережём прод-бокс.
 let chain: Promise<unknown> = Promise.resolve();
@@ -35,7 +36,18 @@ export function runClaude(prompt: string, opts: RunOpts): Promise<string> {
 
 function spawnClaude(prompt: string, { sessionId, resume }: RunOpts): Promise<string> {
   mkdirSync(CWD, { recursive: true });
-  const args = ['-p', prompt, '--tools', '', '--system-prompt', SYSTEM, '--output-format', 'text'];
+  const args = [
+    '-p',
+    prompt,
+    '--tools',
+    'WebSearch,WebFetch', // только веб-поиск; файлы/bash недоступны
+    '--allowedTools',
+    'WebSearch,WebFetch', // авто-разрешение в неинтерактиве (иначе запрос на разрешение auto-deny)
+    '--system-prompt',
+    SYSTEM,
+    '--output-format',
+    'text',
+  ];
   args.push(resume ? '--resume' : '--session-id', sessionId);
 
   return new Promise<string>((resolve, reject) => {
