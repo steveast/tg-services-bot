@@ -13,6 +13,8 @@ export const config = {
   // Telegram user id владельца — команды отвечают только ему и только в личке.
   // Пока не задан, на команды отвечает лишь /whoami (чтобы этот id узнать).
   adminUserId: process.env.ADMIN_USER_ID ? Number(process.env.ADMIN_USER_ID) : undefined,
+  // Путь к Claude Code CLI для AI-чата. На проде бинарь не в PATH под PM2 — зовём по абсолютному пути.
+  claudeCliPath: process.env.CLAUDE_CLI ?? '/home/ms/.local/bin/claude',
   flightsIntervalMin: Number(process.env.FLIGHTS_INTERVAL_MIN ?? '240'),
   dbPath: process.env.DB_PATH ?? 'data/bot.db',
 };

@@ -3,6 +3,7 @@ import { config } from './config.js';
 import { ownerOnly } from './core/access.js';
 import { logger } from './core/logger.js';
 import type { Service } from './core/service.js';
+import { AiService } from './services/ai/index.js';
 import { FlightsService } from './services/flights/index.js';
 
 async function main(): Promise<void> {
@@ -40,6 +41,8 @@ async function main(): Promise<void> {
       ctx.reply(
         [
           'Команды:',
+          '/ask <вопрос> — спросить Claude; или начни сообщение со слова «ии». В личке можно просто писать.',
+          '/reset — очистить контекст AI-диалога',
           '/flights — внеплановый поиск авиабилетов',
           '/lastflights — последние совпадения из кэша',
         ].join('\n'),
@@ -47,7 +50,7 @@ async function main(): Promise<void> {
     ),
   );
 
-  const services: Service[] = [new FlightsService(bot)];
+  const services: Service[] = [new FlightsService(bot), new AiService(bot)];
   for (const service of services) service.register(bot);
 
   bot.catch((err) => logger.error(`bot error: ${err.error}`));

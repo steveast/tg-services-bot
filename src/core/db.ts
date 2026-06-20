@@ -28,6 +28,14 @@ db.exec(`
   );
 `);
 
+db.exec(`
+  CREATE TABLE IF NOT EXISTS ai_sessions (
+    chat_id TEXT PRIMARY KEY,
+    session_id TEXT NOT NULL,
+    updated_at INTEGER NOT NULL
+  );
+`);
+
 // Миграция для БД, созданных до появления origin_airport.
 const cols = db.prepare('PRAGMA table_info(flight_offers)').all() as Array<{ name: string }>;
 const hasColumn = (name: string) => cols.some((c) => c.name === name);
