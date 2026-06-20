@@ -16,3 +16,19 @@ export function ownerOnly(
     await handler(ctx);
   };
 }
+
+// Чат, где боту вообще разрешено работать: владелец в личке ИЛИ семейная группа.
+export function isAllowedChat(ctx: Context): boolean {
+  if (ctx.chat?.type === 'private') return ctx.from?.id === config.adminUserId;
+  return ctx.chat?.id === config.groupChatId;
+}
+
+// Оборачивает обработчик: отвечает владельцу в личке и любому в семейной группе.
+export function allowedChatOnly(
+  handler: (ctx: Context) => unknown | Promise<unknown>,
+): (ctx: Context) => Promise<void> {
+  return async (ctx) => {
+    if (!isAllowedChat(ctx)) return;
+    await handler(ctx);
+  };
+}

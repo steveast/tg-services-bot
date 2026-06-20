@@ -1,6 +1,6 @@
 import { Bot } from 'grammy';
 import { config } from './config.js';
-import { ownerOnly } from './core/access.js';
+import { allowedChatOnly, ownerOnly } from './core/access.js';
 import { logger } from './core/logger.js';
 import type { Service } from './core/service.js';
 import { AiService } from './services/ai/index.js';
@@ -37,7 +37,7 @@ async function main(): Promise<void> {
   bot.command('start', ownerOnly((ctx) => ctx.reply('Бот запущен. /help — список команд.')));
   bot.command(
     'help',
-    ownerOnly((ctx) =>
+    allowedChatOnly((ctx) =>
       ctx.reply(
         [
           'Команды:',
