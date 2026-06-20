@@ -1,5 +1,6 @@
 import type { Bot, Context } from 'grammy';
 import { config } from '../../config.js';
+import { ownerOnly } from '../../core/access.js';
 import { logger } from '../../core/logger.js';
 import type { Service } from '../../core/service.js';
 import { searchFlights } from './aviasales.js';
@@ -26,17 +27,20 @@ export class FlightsService implements Service {
   constructor(private readonly bot: Bot) {}
 
   register(bot: Bot): void {
-    bot.command('flights', async (ctx) => {
-      await ctx.reply('Запускаю внеплановый поиск авиабилетов…');
-      try {
-        await this.runOnce();
-        await this.replyLatest(ctx);
-      } catch (err) {
-        logger.error(`flights manual run failed: ${err}`);
-      }
-    });
+    bot.command(
+      'flights',
+      ownerOnly(async (ctx) => {
+        await ctx.reply('Запускаю внеплановый поиск авиабилетов…');
+        try {
+          await this.runOnce();
+          await this.replyLatest(ctx);
+        } catch (err) {
+          logger.error(`flights manual run failed: ${err}`);
+        }
+      }),
+    );
 
-    bot.command('lastflights', (ctx) => this.replyLatest(ctx));
+    bot.command('lastflights', ownerOnly((ctx) => this.replyLatest(ctx)));
   }
 
   // Показывает вызывающему текущий топ по каждой подписке из БД.
