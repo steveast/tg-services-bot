@@ -11,6 +11,10 @@ export interface FlightSubscription {
   passengers: PassengerGroup;
   currency: string;
   directOnly?: boolean;
+  // Окно вылета целевого рейса (ISO YYYY-MM-DD, включительно). Если оба заданы —
+  // ищем только в этом диапазоне; иначе катящееся окно от сегодняшнего дня.
+  departFrom?: string;
+  departTo?: string;
   // Фидер-связка: при пуше оффера по этой подписке приложить билеты
   // feeder.origin → origin (как долететь к вылету), стыкуя аэропорт прилёта
   // фидера с аэропортом вылета целевого рейса. Не самостоятельная подписка —

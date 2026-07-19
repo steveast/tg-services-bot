@@ -27,11 +27,9 @@ interface ApiResponse {
 }
 
 export async function searchFlights(sub: FlightSubscription): Promise<FlightOffer[]> {
-  const today = startOfDay(new Date());
-  const cutoff = new Date(today);
-  cutoff.setDate(cutoff.getDate() + SEARCH_WINDOW_DAYS);
+  const { fromStr, toStr } = departureWindow(sub);
 
-  const months = monthsBetween(today, cutoff);
+  const months = monthsBetween(fromStr, toStr);
   const collected: FlightOffer[] = [];
 
   for (const month of months) {
@@ -83,10 +81,24 @@ export async function searchFlights(sub: FlightSubscription): Promise<FlightOffe
 
   return collected
     .filter((offer) => {
-      const dep = new Date(offer.departureAt);
-      return dep >= today && dep <= cutoff && offer.price <= sub.maxPrice;
+      // departureAt: "2026-08-15T11:00:00+03:00" — сравниваем по дате вылета
+      // (первые 10 символов), лексикографически, чтобы не зависеть от TZ сервера.
+      const depDate = offer.departureAt.slice(0, 10);
+      return depDate >= fromStr && depDate <= toStr && offer.price <= sub.maxPrice;
     })
     .sort((a, b) => a.price - b.price);
+}
+
+// Границы окна вылета (ISO YYYY-MM-DD, включительно). Если у подписки заданы
+// departFrom/departTo — берём их; иначе катящееся окно SEARCH_WINDOW_DAYS от сегодня.
+function departureWindow(sub: FlightSubscription): { fromStr: string; toStr: string } {
+  if (sub.departFrom && sub.departTo) {
+    return { fromStr: sub.departFrom, toStr: sub.departTo };
+  }
+  const today = startOfDay(new Date());
+  const cutoff = new Date(today);
+  cutoff.setDate(cutoff.getDate() + SEARCH_WINDOW_DAYS);
+  return { fromStr: toISODate(today), toStr: toISODate(cutoff) };
 }
 
 function startOfDay(d: Date): Date {
@@ -95,13 +107,25 @@ function startOfDay(d: Date): Date {
   return out;
 }
 
-function monthsBetween(start: Date, end: Date): string[] {
-  const months = new Set<string>();
-  const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
-  while (cursor <= end) {
-    const key = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}`;
-    months.add(key);
-    cursor.setMonth(cursor.getMonth() + 1);
+function toISODate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// Список месяцев YYYY-MM, покрывающих диапазон [fromStr, toStr] включительно.
+// Парсим год/месяц из строк напрямую — без Date, чтобы не зависеть от TZ.
+function monthsBetween(fromStr: string, toStr: string): string[] {
+  const months: string[] = [];
+  let y = Number(fromStr.slice(0, 4));
+  let m = Number(fromStr.slice(5, 7));
+  const endY = Number(toStr.slice(0, 4));
+  const endM = Number(toStr.slice(5, 7));
+  while (y < endY || (y === endY && m <= endM)) {
+    months.push(`${y}-${String(m).padStart(2, '0')}`);
+    m += 1;
+    if (m > 12) {
+      m = 1;
+      y += 1;
+    }
   }
-  return [...months];
+  return months;
 }

@@ -137,6 +137,8 @@ export class FlightsService implements Service {
       passengers: sub.passengers,
       currency: sub.currency,
       directOnly: true,
+      departFrom: sub.departFrom,
+      departTo: sub.departTo,
     };
     let allFeeders: FlightOffer[];
     try {
