@@ -16,7 +16,7 @@ export function buildMessages(sub: FlightSubscription, scored: ScoredOffer[]): s
   const headerBase = [
     `<b>${sub.origin} → ${sub.destination}</b> — ${scored.length} ${pluralOffers(scored.length)}`,
     `${describePassengers(sub.passengers)}, оценка × ${seats}`,
-    `Лимит: до ${sub.maxPrice} ${currency} / билет, прямые рейсы`,
+    `Лимит: до ${sub.maxPrice} ${currency} / билет, ${sub.directOnly ? 'только прямые' : 'прямые и с пересадками'}`,
   ].join('\n');
 
   const lines = scored.map((s) => renderLine(s, currency, seats));
