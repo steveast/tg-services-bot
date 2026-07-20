@@ -84,7 +84,10 @@ export async function searchFlights(sub: FlightSubscription): Promise<FlightOffe
       // departureAt: "2026-08-15T11:00:00+03:00" — сравниваем по дате вылета
       // (первые 10 символов), лексикографически, чтобы не зависеть от TZ сервера.
       const depDate = offer.departureAt.slice(0, 10);
-      return depDate >= fromStr && depDate <= toStr && offer.price <= sub.maxPrice;
+      if (depDate < fromStr || depDate > toStr) return false;
+      if (offer.price > sub.maxPrice) return false;
+      if (sub.maxTransfers !== undefined && offer.transfers > sub.maxTransfers) return false;
+      return true;
     })
     .sort((a, b) => a.price - b.price);
 }

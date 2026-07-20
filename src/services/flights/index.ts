@@ -14,8 +14,12 @@ const LATEST_PER_SUB = 3;
 // Сколько самых дешёвых офферов показывать на подписку (и фидеров на целевой рейс).
 const MATCHES_PER_SUB = 3;
 
-// Минимальный зазор между прилётом фидера в Москву и вылетом целевого рейса.
+// Допустимый зазор между прилётом фидера в Москву и вылетом целевого рейса.
+// Нижняя граница — успеть на стыковку; верхняя — не подставлять рейс, который
+// прилетает за много дней до вылета (иначе берётся глобально самый дешёвый
+// фидер во всём окне и «стыкует» его к любой цели).
 const MIN_CONNECTION_MS = 5 * 60 * 60 * 1000;
+const MAX_CONNECTION_MS = 24 * 60 * 60 * 1000;
 
 const BETWEEN_MESSAGES_MS = 1200;
 
@@ -125,8 +129,9 @@ export class FlightsService implements Service {
   }
 
   // Для каждого только что запушенного целевого оффера подбирает фидер
-  // feeder.origin → аэропорт вылета этого рейса, с вылетом не позже него,
-  // и шлёт отдельным блоком. Стыковка по аэропорту + дате; в БД не пишется.
+  // feeder.origin → аэропорт вылета этого рейса с прилётом за 5–24 ч до его
+  // вылета и шлёт отдельным блоком. Стыковка по аэропорту + окну зазора;
+  // в БД не пишется.
   private async pushFeeders(sub: FlightSubscription, scored: ScoredOffer[]): Promise<void> {
     if (!sub.feeder) return;
     const feederSub: FlightSubscription = {
@@ -152,9 +157,11 @@ export class FlightsService implements Service {
       const feeders = allFeeders
         .filter((f) => {
           if (f.destinationAirport !== target.originAirport) return false;
-          // прилёт фидера = вылет + время в пути; нужен зазор ≥ MIN_CONNECTION_MS до целевого вылета
+          // прилёт фидера = вылет + время в пути; зазор до целевого вылета
+          // должен быть в окне [MIN_CONNECTION_MS, MAX_CONNECTION_MS]
           const arrivalMs = Date.parse(f.departureAt) + f.duration * 60_000;
-          return targetDepMs - arrivalMs >= MIN_CONNECTION_MS;
+          const gap = targetDepMs - arrivalMs;
+          return gap >= MIN_CONNECTION_MS && gap <= MAX_CONNECTION_MS;
         })
         .slice(0, MATCHES_PER_SUB);
       const text = buildFeederBlock(sub.feeder.origin, target, feeders, sub.passengers, sub.currency);

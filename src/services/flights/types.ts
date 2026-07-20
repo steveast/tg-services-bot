@@ -11,6 +11,10 @@ export interface FlightSubscription {
   passengers: PassengerGroup;
   currency: string;
   directOnly?: boolean;
+  // Максимум пересадок в маршруте (0 = только прямые). У API нет такого
+  // параметра — фильтруется по offer.transfers на нашей стороне. Не влияет,
+  // если directOnly: true (тогда API уже вернул только прямые).
+  maxTransfers?: number;
   // Окно вылета целевого рейса (ISO YYYY-MM-DD, включительно). Если оба заданы —
   // ищем только в этом диапазоне; иначе катящееся окно от сегодняшнего дня.
   departFrom?: string;

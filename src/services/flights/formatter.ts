@@ -16,7 +16,7 @@ export function buildMessages(sub: FlightSubscription, scored: ScoredOffer[]): s
   const headerBase = [
     `<b>${sub.origin} → ${sub.destination}</b> — ${scored.length} ${pluralOffers(scored.length)}`,
     `${describePassengers(sub.passengers)}, оценка × ${seats}`,
-    `Лимит: до ${sub.maxPrice} ${currency} / билет, ${sub.directOnly ? 'только прямые' : 'прямые и с пересадками'}`,
+    `Лимит: до ${sub.maxPrice} ${currency} / билет, ${describeTransfers(sub)}`,
   ].join('\n');
 
   const lines = scored.map((s) => renderLine(s, currency, seats));
@@ -91,7 +91,7 @@ export function buildFeederBlock(
   const targetDate = formatDepartureDate(target.departureAt);
   const header = `🔗 Долететь ${feederOrigin} → ${targetAirport} к рейсу ${targetDate}:`;
   if (feeders.length === 0) {
-    return `${header}\n  связного рейса нет (прямой ${feederOrigin} → ${targetAirport} с зазором ≥ 5 ч не найден)`;
+    return `${header}\n  связного рейса нет (прямой ${feederOrigin} → ${targetAirport} с прилётом за 5–24 ч до вылета не найден)`;
   }
   const lines = feeders.map((offer) => {
     const total = formatPrice(offer.price * seats);
@@ -154,6 +154,13 @@ function describePassengers(p: PassengerGroup): string {
   if (p.adults > 0) parts.push(`${p.adults} взр.`);
   if (p.children.length > 0) parts.push(`${p.children.length} реб. (${p.children.join(', ')} лет)`);
   return parts.join(' + ');
+}
+
+function describeTransfers(sub: FlightSubscription): string {
+  if (sub.directOnly || sub.maxTransfers === 0) return 'только прямые';
+  if (sub.maxTransfers === undefined) return 'прямые и с пересадками';
+  if (sub.maxTransfers === 1) return 'прямые или с 1 пересадкой';
+  return `прямые или до ${sub.maxTransfers} пересадок`;
 }
 
 function pluralOffers(n: number): string {
