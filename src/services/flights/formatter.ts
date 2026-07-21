@@ -13,14 +13,15 @@ export function buildMessages(sub: FlightSubscription, scored: ScoredOffer[]): s
 
   const currency = sub.currency.toUpperCase();
   const seats = totalSeats(sub.passengers);
-  const dest = sub.destinationLabel ?? sub.destination;
+  const flag = flagEmoji(sub.country);
+  const dest = withFlag(flag, sub.destinationLabel ?? sub.destination);
   const headerBase = [
-    `<b>${sub.origin} → ${dest}</b> — ${scored.length} ${pluralOffers(scored.length)}`,
+    `✈️ <b>${sub.origin} → ${dest}</b> — ${scored.length} ${pluralOffers(scored.length)}`,
     `${describePassengers(sub.passengers)}, оценка × ${seats}`,
     `Лимит: до ${sub.maxPrice} ${currency} / билет, ${describeTransfers(sub)}`,
   ].join('\n');
 
-  const lines = scored.map((s) => renderLine(s, currency, seats));
+  const lines = scored.map((s) => renderLine(s, currency, seats, flag));
 
   const messages: string[] = [];
   let current = headerBase;
@@ -54,9 +55,10 @@ export function buildLatestBlock(
         timeZone: 'Europe/Moscow',
       })
     : null;
-  const dest = sub.destinationLabel ?? sub.destination;
+  const flag = flagEmoji(sub.country);
+  const dest = withFlag(flag, sub.destinationLabel ?? sub.destination);
   const header = [
-    `<b>${sub.origin} → ${dest}</b> — лимит до ${formatPrice(sub.maxPrice)} ${currency} / билет`,
+    `✈️ <b>${sub.origin} → ${dest}</b> — лимит до ${formatPrice(sub.maxPrice)} ${currency} / билет`,
     seen ? `последний скан: ${seen} MSK` : null,
   ]
     .filter(Boolean)
@@ -68,7 +70,7 @@ export function buildLatestBlock(
     const date = formatDepartureDate(offer.departureAt);
     const time = formatDepartureTime(offer.departureAt);
     const transfers = offer.transfers === 0 ? 'прямой' : `${offer.transfers} пересад.`;
-    const route = formatRoute(offer);
+    const route = formatRoute(offer, flag);
     return [
       `• <b>≈ ${total} ${currency}</b> — ${date} ${time} MSK, ${route}, ${offer.airline} ${offer.flightNumber}, ${transfers}`,
       `  ${price} ${currency}/билет — <a href="${offer.link}">открыть</a>`,
@@ -93,14 +95,14 @@ export function chunkMessages(parts: string[], maxChars = MAX_MESSAGE_CHARS): st
   return messages;
 }
 
-function renderLine(scored: ScoredOffer, currency: string, seats: number): string {
+function renderLine(scored: ScoredOffer, currency: string, seats: number, flag: string): string {
   const { offer, status, previousPrice } = scored;
   const price = formatPrice(offer.price);
   const total = formatPrice(offer.price * seats);
   const date = formatDepartureDate(offer.departureAt);
   const time = formatDepartureTime(offer.departureAt);
   const transfers = offer.transfers === 0 ? 'прямой' : `${offer.transfers} пересад.`;
-  const route = formatRoute(offer);
+  const route = formatRoute(offer, flag);
 
   const totalPrefix = status === 'price_drop' && previousPrice
     ? `↓ <b>≈ ${total} ${currency}</b> (было ≈ ${formatPrice(previousPrice * seats)})`
@@ -115,12 +117,28 @@ function renderLine(scored: ScoredOffer, currency: string, seats: number): strin
   ].join('\n');
 }
 
-// Маршрут оффера аэропортами — «SVO → HFE». Для страны-направления показывает
-// конкретный город прилёта (у страны он меняется от оффера к офферу).
-function formatRoute(offer: FlightOffer): string {
+// Маршрут оффера аэропортами — «SVO → HFE 🇨🇳». Для страны-направления показывает
+// конкретный город прилёта (у страны он меняется от оффера к офферу) + флаг.
+function formatRoute(offer: FlightOffer, flag: string): string {
   const from = offer.originAirport || offer.origin;
   const to = offer.destinationAirport || offer.destination;
-  return `${from} → ${to}`;
+  const route = `${from} → ${to}`;
+  return flag ? `${route} ${flag}` : route;
+}
+
+// Флаг-эмодзи из кода страны ISO 3166-1 alpha-2 (CN → 🇨🇳) через regional
+// indicator symbols. Пустая строка, если код не задан/невалиден.
+function flagEmoji(country?: string): string {
+  if (!country) return '';
+  const cc = country.trim().toUpperCase();
+  if (!/^[A-Z]{2}$/.test(cc)) return '';
+  const base = 0x1f1e6; // 🇦
+  return String.fromCodePoint(base + cc.charCodeAt(0) - 65, base + cc.charCodeAt(1) - 65);
+}
+
+// «🇨🇳 Китай», либо просто текст, если флага нет.
+function withFlag(flag: string, text: string): string {
+  return flag ? `${flag} ${text}` : text;
 }
 
 function totalSeats(p: PassengerGroup): number {

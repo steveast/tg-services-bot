@@ -13,6 +13,7 @@ export const subscriptions: FlightSubscription[] = [
     id: 'mow-nha-trang',
     origin: 'MOW',
     destination: 'CXR',
+    country: 'VN',
     maxPrice: 45000,
     passengers: passenger,
     currency: 'rub',
@@ -25,6 +26,7 @@ export const subscriptions: FlightSubscription[] = [
     id: 'mow-bangkok',
     origin: 'MOW',
     destination: 'BKK',
+    country: 'TH',
     maxPrice: 45000,
     passengers: passenger,
     currency: 'rub',
@@ -35,15 +37,17 @@ export const subscriptions: FlightSubscription[] = [
   },
   {
     // Код страны CN — API вернёт билеты в любой город Китая, топ по цене.
+    // Только прямые: цель — долететь до Китая, а стыковка внутри страны
+    // (например через Пекин по пути в Гуанчжоу) бессмысленна — в Пекине уже Китай.
     id: 'mow-china',
     origin: 'MOW',
     destination: 'CN',
     destinationLabel: 'Китай',
+    country: 'CN',
     maxPrice: 45000,
     passengers: passenger,
     currency: 'rub',
-    directOnly: false,
-    maxTransfers: 1,
+    directOnly: true,
     departFrom,
     departTo,
   },

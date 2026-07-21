@@ -12,6 +12,9 @@ export interface FlightSubscription {
   // Человекочитаемое имя направления для заголовков (например «Китай» для CN).
   // Если не задано — показываем сам код destination.
   destinationLabel?: string;
+  // Код страны назначения ISO 3166-1 alpha-2 (VN, TH, CN) — из него строится
+  // флаг-эмодзи. Все офферы подписки в одной стране, поэтому флаг общий.
+  country?: string;
   maxPrice: number;
   passengers: PassengerGroup;
   currency: string;
