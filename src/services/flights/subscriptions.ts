@@ -20,7 +20,6 @@ export const subscriptions: FlightSubscription[] = [
     maxTransfers: 1,
     departFrom,
     departTo,
-    feeder: { origin: 'IJK' },
   },
   {
     id: 'mow-bangkok',
@@ -33,6 +32,19 @@ export const subscriptions: FlightSubscription[] = [
     maxTransfers: 1,
     departFrom,
     departTo,
-    feeder: { origin: 'IJK' },
+  },
+  {
+    // Код страны CN — API вернёт билеты в любой город Китая, топ по цене.
+    id: 'mow-china',
+    origin: 'MOW',
+    destination: 'CN',
+    destinationLabel: 'Китай',
+    maxPrice: 45000,
+    passengers: passenger,
+    currency: 'rub',
+    directOnly: false,
+    maxTransfers: 1,
+    departFrom,
+    departTo,
   },
 ];

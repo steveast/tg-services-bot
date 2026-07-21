@@ -13,8 +13,9 @@ export function buildMessages(sub: FlightSubscription, scored: ScoredOffer[]): s
 
   const currency = sub.currency.toUpperCase();
   const seats = totalSeats(sub.passengers);
+  const dest = sub.destinationLabel ?? sub.destination;
   const headerBase = [
-    `<b>${sub.origin} → ${sub.destination}</b> — ${scored.length} ${pluralOffers(scored.length)}`,
+    `<b>${sub.origin} → ${dest}</b> — ${scored.length} ${pluralOffers(scored.length)}`,
     `${describePassengers(sub.passengers)}, оценка × ${seats}`,
     `Лимит: до ${sub.maxPrice} ${currency} / билет, ${describeTransfers(sub)}`,
   ].join('\n');
@@ -53,8 +54,9 @@ export function buildLatestBlock(
         timeZone: 'Europe/Moscow',
       })
     : null;
+  const dest = sub.destinationLabel ?? sub.destination;
   const header = [
-    `<b>${sub.origin} → ${sub.destination}</b> — лимит до ${formatPrice(sub.maxPrice)} ${currency} / билет`,
+    `<b>${sub.origin} → ${dest}</b> — лимит до ${formatPrice(sub.maxPrice)} ${currency} / билет`,
     seen ? `последний скан: ${seen} MSK` : null,
   ]
     .filter(Boolean)
@@ -66,42 +68,10 @@ export function buildLatestBlock(
     const date = formatDepartureDate(offer.departureAt);
     const time = formatDepartureTime(offer.departureAt);
     const transfers = offer.transfers === 0 ? 'прямой' : `${offer.transfers} пересад.`;
-    const airport = offer.originAirport || offer.origin;
+    const route = formatRoute(offer);
     return [
-      `• <b>≈ ${total} ${currency}</b> — ${date} ${time} MSK, вылет ${airport}, ${offer.airline} ${offer.flightNumber}, ${transfers}`,
+      `• <b>≈ ${total} ${currency}</b> — ${date} ${time} MSK, ${route}, ${offer.airline} ${offer.flightNumber}, ${transfers}`,
       `  ${price} ${currency}/билет — <a href="${offer.link}">открыть</a>`,
-    ].join('\n');
-  });
-  return `${header}\n${lines.join('\n')}`;
-}
-
-// Блок «как долететь к вылету» — фидер feederOrigin → аэропорт вылета целевого
-// рейса, приложенный к офферу. Аэропорт прибытия фидера уже состыкован с
-// аэропортом вылета target вызывающим кодом.
-export function buildFeederBlock(
-  feederOrigin: string,
-  target: FlightOffer,
-  feeders: FlightOffer[],
-  passengers: PassengerGroup,
-  currency: string,
-): string {
-  const cur = currency.toUpperCase();
-  const seats = totalSeats(passengers);
-  const targetAirport = target.originAirport || target.origin;
-  const targetDate = formatDepartureDate(target.departureAt);
-  const header = `🔗 Долететь ${feederOrigin} → ${targetAirport} к рейсу ${targetDate}:`;
-  if (feeders.length === 0) {
-    return `${header}\n  связного рейса нет (прямой ${feederOrigin} → ${targetAirport} с прилётом за 5–24 ч до вылета не найден)`;
-  }
-  const lines = feeders.map((offer) => {
-    const total = formatPrice(offer.price * seats);
-    const price = formatPrice(offer.price);
-    const date = formatDepartureDate(offer.departureAt);
-    const time = formatDepartureTime(offer.departureAt);
-    const transfers = offer.transfers === 0 ? 'прямой' : `${offer.transfers} пересад.`;
-    return [
-      `• <b>≈ ${total} ${cur}</b> — ${date} ${time} MSK, ${offer.airline} ${offer.flightNumber}, ${transfers}`,
-      `  ${price} ${cur}/билет — <a href="${offer.link}">открыть</a>`,
     ].join('\n');
   });
   return `${header}\n${lines.join('\n')}`;
@@ -130,7 +100,7 @@ function renderLine(scored: ScoredOffer, currency: string, seats: number): strin
   const date = formatDepartureDate(offer.departureAt);
   const time = formatDepartureTime(offer.departureAt);
   const transfers = offer.transfers === 0 ? 'прямой' : `${offer.transfers} пересад.`;
-  const airport = offer.originAirport || offer.origin;
+  const route = formatRoute(offer);
 
   const totalPrefix = status === 'price_drop' && previousPrice
     ? `↓ <b>≈ ${total} ${currency}</b> (было ≈ ${formatPrice(previousPrice * seats)})`
@@ -140,9 +110,17 @@ function renderLine(scored: ScoredOffer, currency: string, seats: number): strin
     : `${price} ${currency}/билет`;
 
   return [
-    `• ${totalPrefix} — ${date} ${time} MSK, вылет ${airport}, ${offer.airline} ${offer.flightNumber}, ${transfers}`,
+    `• ${totalPrefix} — ${date} ${time} MSK, ${route}, ${offer.airline} ${offer.flightNumber}, ${transfers}`,
     `  ${perTicket} — <a href="${offer.link}">открыть</a>`,
   ].join('\n');
+}
+
+// Маршрут оффера аэропортами — «SVO → HFE». Для страны-направления показывает
+// конкретный город прилёта (у страны он меняется от оффера к офферу).
+function formatRoute(offer: FlightOffer): string {
+  const from = offer.originAirport || offer.origin;
+  const to = offer.destinationAirport || offer.destination;
+  return `${from} → ${to}`;
 }
 
 function totalSeats(p: PassengerGroup): number {

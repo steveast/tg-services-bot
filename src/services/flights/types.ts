@@ -6,7 +6,12 @@ export interface PassengerGroup {
 export interface FlightSubscription {
   id: string;
   origin: string;
+  // Направление: IATA-код города/аэропорта (CXR, BKK) ИЛИ код страны (CN) —
+  // для страны API вернёт офферы в любой её город, отсортированные по цене.
   destination: string;
+  // Человекочитаемое имя направления для заголовков (например «Китай» для CN).
+  // Если не задано — показываем сам код destination.
+  destinationLabel?: string;
   maxPrice: number;
   passengers: PassengerGroup;
   currency: string;
@@ -19,11 +24,6 @@ export interface FlightSubscription {
   // ищем только в этом диапазоне; иначе катящееся окно от сегодняшнего дня.
   departFrom?: string;
   departTo?: string;
-  // Фидер-связка: при пуше оффера по этой подписке приложить билеты
-  // feeder.origin → origin (как долететь к вылету), стыкуя аэропорт прилёта
-  // фидера с аэропортом вылета целевого рейса. Не самостоятельная подписка —
-  // ищется только в момент пуша, в БД не пишется.
-  feeder?: { origin: string };
 }
 
 export interface FlightOffer {

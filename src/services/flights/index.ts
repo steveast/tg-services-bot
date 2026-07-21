@@ -4,22 +4,14 @@ import { allowedChatOnly } from '../../core/access.js';
 import { logger } from '../../core/logger.js';
 import type { Service } from '../../core/service.js';
 import { searchFlights } from './aviasales.js';
-import { buildFeederBlock, buildLatestBlock, buildMessages, chunkMessages, type ScoredOffer } from './formatter.js';
+import { buildLatestBlock, buildMessages, chunkMessages, type ScoredOffer } from './formatter.js';
 import { getLatestOffers, recordOffer } from './repository.js';
 import { subscriptions } from './subscriptions.js';
-import type { FlightOffer, FlightSubscription } from './types.js';
 
 const LATEST_PER_SUB = 3;
 
-// Сколько самых дешёвых офферов показывать на подписку (и фидеров на целевой рейс).
+// Сколько самых дешёвых офферов показывать на подписку.
 const MATCHES_PER_SUB = 3;
-
-// Допустимый зазор между прилётом фидера в Москву и вылетом целевого рейса.
-// Нижняя граница — успеть на стыковку; верхняя — не подставлять рейс, который
-// прилетает за много дней до вылета (иначе берётся глобально самый дешёвый
-// фидер во всём окне и «стыкует» его к любой цели).
-const MIN_CONNECTION_MS = 5 * 60 * 60 * 1000;
-const MAX_CONNECTION_MS = 24 * 60 * 60 * 1000;
 
 const BETWEEN_MESSAGES_MS = 1200;
 
@@ -117,63 +109,12 @@ export class FlightsService implements Service {
           logger.info(
             `flights[${sub.id}]: matched ${offers.length}, ${scored.length} updates in ${sent}/${messages.length} msg`,
           );
-
-          if (sub.feeder) await this.pushFeeders(sub, scored);
         } catch (err) {
           logger.error(`flights[${sub.id}]: ${err}`);
         }
       }
     } finally {
       this.running = false;
-    }
-  }
-
-  // Для каждого только что запушенного целевого оффера подбирает фидер
-  // feeder.origin → аэропорт вылета этого рейса с прилётом за 5–24 ч до его
-  // вылета и шлёт отдельным блоком. Стыковка по аэропорту + окну зазора;
-  // в БД не пишется.
-  private async pushFeeders(sub: FlightSubscription, scored: ScoredOffer[]): Promise<void> {
-    if (!sub.feeder) return;
-    const feederSub: FlightSubscription = {
-      id: `${sub.id}-feeder`,
-      origin: sub.feeder.origin,
-      destination: sub.origin,
-      maxPrice: Number.MAX_SAFE_INTEGER,
-      passengers: sub.passengers,
-      currency: sub.currency,
-      directOnly: true,
-      departFrom: sub.departFrom,
-      departTo: sub.departTo,
-    };
-    let allFeeders: FlightOffer[];
-    try {
-      allFeeders = await searchFlights(feederSub);
-    } catch (err) {
-      logger.error(`flights[${sub.id}] feeder search failed: ${err}`);
-      return;
-    }
-    for (const { offer: target } of scored) {
-      const targetDepMs = Date.parse(target.departureAt);
-      const feeders = allFeeders
-        .filter((f) => {
-          if (f.destinationAirport !== target.originAirport) return false;
-          // прилёт фидера = вылет + время в пути; зазор до целевого вылета
-          // должен быть в окне [MIN_CONNECTION_MS, MAX_CONNECTION_MS]
-          const arrivalMs = Date.parse(f.departureAt) + f.duration * 60_000;
-          const gap = targetDepMs - arrivalMs;
-          return gap >= MIN_CONNECTION_MS && gap <= MAX_CONNECTION_MS;
-        })
-        .slice(0, MATCHES_PER_SUB);
-      const text = buildFeederBlock(sub.feeder.origin, target, feeders, sub.passengers, sub.currency);
-      try {
-        await this.bot.api.sendMessage(config.groupChatId, text, {
-          parse_mode: 'HTML',
-          link_preview_options: { is_disabled: true },
-        });
-        await sleep(BETWEEN_MESSAGES_MS);
-      } catch (err) {
-        logger.error(`flights[${sub.id}] feeder sendMessage failed: ${err}`);
-      }
     }
   }
 }
