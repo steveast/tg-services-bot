@@ -87,6 +87,9 @@ export async function searchFlights(sub: FlightSubscription): Promise<FlightOffe
       if (depDate < fromStr || depDate > toStr) return false;
       if (offer.price > sub.maxPrice) return false;
       if (sub.maxTransfers !== undefined && offer.transfers > sub.maxTransfers) return false;
+      if (sub.includeDestinationAirports && !sub.includeDestinationAirports.includes(offer.destinationAirport)) {
+        return false;
+      }
       return true;
     })
     .sort((a, b) => a.price - b.price);

@@ -23,6 +23,10 @@ export interface FlightSubscription {
   // параметра — фильтруется по offer.transfers на нашей стороне. Не влияет,
   // если directOnly: true (тогда API уже вернул только прямые).
   maxTransfers?: number;
+  // Разрешённые аэропорты назначения (например, при destination = код страны,
+  // чтобы сузить топ по цене до конкретного региона). Если задано — офферы
+  // с другим offer.destinationAirport отбрасываются.
+  includeDestinationAirports?: string[];
   // Окно вылета целевого рейса (ISO YYYY-MM-DD, включительно). Если оба заданы —
   // ищем только в этом диапазоне; иначе катящееся окно от сегодняшнего дня.
   departFrom?: string;

@@ -48,6 +48,10 @@ export const subscriptions: FlightSubscription[] = [
     passengers: passenger,
     currency: 'rub',
     directOnly: true,
+    // Аллоулист вместо всей CN: URC (Урумчи, Синьцзян) почти всегда самый
+    // дешёвый вариант и вытеснял из топ-3 всё остальное, а это другой регион
+    // (3000+ км от Пекина). Ограничиваем Северным Китаем + Гуанчжоу.
+    includeDestinationAirports: ['PEK', 'PKX', 'TSN', 'TAO', 'SJW', 'TYN', 'DLC', 'TNA', 'HET', 'CAN'],
     departFrom,
     departTo,
   },
