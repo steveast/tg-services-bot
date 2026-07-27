@@ -22,17 +22,4 @@ export const subscriptions: FlightSubscription[] = [
     departFrom,
     departTo,
   },
-  {
-    id: 'mow-da-nang',
-    origin: 'MOW',
-    destination: 'DAD',
-    country: 'VN',
-    maxPrice: 45000,
-    passengers: passenger,
-    currency: 'rub',
-    directOnly: false,
-    maxTransfers: 1,
-    departFrom,
-    departTo,
-  },
 ];
