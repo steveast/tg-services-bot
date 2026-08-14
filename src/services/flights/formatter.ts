@@ -1,4 +1,5 @@
 import type { FlightOffer, FlightSubscription, PassengerGroup } from './types.js';
+import { transitAirports } from './visa.js';
 
 const MAX_MESSAGE_CHARS = 3500;
 
@@ -69,7 +70,7 @@ export function buildLatestBlock(
     const price = formatPrice(offer.price);
     const date = formatDepartureDate(offer.departureAt);
     const time = formatDepartureTime(offer.departureAt);
-    const transfers = offer.transfers === 0 ? 'прямой' : `${offer.transfers} пересад.`;
+    const transfers = describeOfferTransfers(offer);
     const route = formatRoute(offer, flag);
     return [
       `• <b>≈ ${total} ${currency}</b> — ${date} ${time} MSK, ${route}, ${offer.airline} ${offer.flightNumber}, ${transfers}`,
@@ -101,7 +102,7 @@ function renderLine(scored: ScoredOffer, currency: string, seats: number, flag: 
   const total = formatPrice(offer.price * seats);
   const date = formatDepartureDate(offer.departureAt);
   const time = formatDepartureTime(offer.departureAt);
-  const transfers = offer.transfers === 0 ? 'прямой' : `${offer.transfers} пересад.`;
+  const transfers = describeOfferTransfers(offer);
   const route = formatRoute(offer, flag);
 
   const totalPrefix = status === 'price_drop' && previousPrice
@@ -115,6 +116,17 @@ function renderLine(scored: ScoredOffer, currency: string, seats: number, flag: 
     `• ${totalPrefix} — ${date} ${time} MSK, ${route}, ${offer.airline} ${offer.flightNumber}, ${transfers}`,
     `  ${perTicket} — <a href="${offer.link}">открыть</a>`,
   ].join('\n');
+}
+
+// «прямой» либо «2 пересад. (DOH → GRU)» — точки стыковки показываем, чтобы
+// безвизовость маршрута можно было проверить глазами, не открывая ссылку.
+// Точек может быть больше, чем пересадок: смена аэропорта по земле (SAW → IST)
+// не считается пересадкой между рейсами, но пройти её всё равно придётся.
+function describeOfferTransfers(offer: FlightOffer): string {
+  if (offer.transfers === 0) return 'прямой';
+  const label = `${offer.transfers} пересад.`;
+  const via = transitAirports(offer);
+  return via && via.length > 0 ? `${label} (${via.join(' → ')})` : label;
 }
 
 // Маршрут оффера аэропортами — «SVO → HFE 🇨🇳». Для страны-направления показывает

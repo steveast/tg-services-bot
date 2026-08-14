@@ -1,6 +1,7 @@
 import { config } from '../../config.js';
 import { logger } from '../../core/logger.js';
 import type { FlightOffer, FlightSubscription } from './types.js';
+import { checkVisaFree } from './visa.js';
 
 const BASE_URL = 'https://api.travelpayouts.com/aviasales/v3/prices_for_dates';
 const SEARCH_WINDOW_DAYS = 14;
@@ -79,7 +80,13 @@ export async function searchFlights(sub: FlightSubscription): Promise<FlightOffe
     }
   }
 
-  return collected
+  // Счётчики отказов по визе — чтобы молчание подписки было объяснимо по логу,
+  // а неизвестные аэропорты можно было добавить в аллоулист.
+  let visaRejected = 0;
+  let unparsedRejected = 0;
+  const blockers = new Set<string>();
+
+  const result = collected
     .filter((offer) => {
       // departureAt: "2026-08-15T11:00:00+03:00" — сравниваем по дате вылета
       // (первые 10 символов), лексикографически, чтобы не зависеть от TZ сервера.
@@ -90,9 +97,27 @@ export async function searchFlights(sub: FlightSubscription): Promise<FlightOffe
       if (sub.includeDestinationAirports && !sub.includeDestinationAirports.includes(offer.destinationAirport)) {
         return false;
       }
+      // Стыковка должна быть безвизовой для паспорта РФ. Проверяем последним:
+      // разбор link дороже остальных условий, а отсеять дешёвыми стоит раньше.
+      const visa = checkVisaFree(offer);
+      if (!visa.ok) {
+        if (visa.reason === 'unparsed') unparsedRejected += 1;
+        else visaRejected += 1;
+        visa.blockedBy?.forEach((code) => blockers.add(code));
+        return false;
+      }
       return true;
     })
     .sort((a, b) => a.price - b.price);
+
+  if (visaRejected > 0 || unparsedRejected > 0) {
+    const via = blockers.size > 0 ? `, требуют визу: ${[...blockers].sort().join(',')}` : '';
+    logger.info(
+      `flights[${sub.id}]: отброшено по визе ${visaRejected}, по неразобранному маршруту ${unparsedRejected}${via}`,
+    );
+  }
+
+  return result;
 }
 
 // Границы окна вылета (ISO YYYY-MM-DD, включительно). Если у подписки заданы
