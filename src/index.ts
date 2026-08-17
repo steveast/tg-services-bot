@@ -36,23 +36,22 @@ async function main(): Promise<void> {
     ),
   );
 
-  bot.command('start', allowedChatOnly((ctx) => ctx.reply('Бот запущен. /help — список команд.')));
-  bot.command(
-    'help',
-    allowedChatOnly((ctx) =>
-      ctx.reply(
-        [
-          'Команды:',
-          '/ask <вопрос> — спросить Claude; или начни сообщение со слова «ии». В личке можно просто писать.',
-          '/reset — очистить контекст AI-диалога',
-          '/flights — внеплановый поиск авиабилетов',
-          '/lastflights — последние совпадения из кэша',
-        ].join('\n'),
-      ),
-    ),
-  );
+  const helpLines = [
+    'Команды:',
+    '/ask <вопрос> — спросить Claude; или начни сообщение со слова «ии». В личке можно просто писать.',
+    '/reset — очистить контекст AI-диалога',
+  ];
+  if (config.flightsEnabled) {
+    helpLines.push('/flights — внеплановый поиск авиабилетов', '/lastflights — последние совпадения из кэша');
+  }
 
-  const services: Service[] = [new FlightsService(bot), new AiService(bot)];
+  bot.command('start', allowedChatOnly((ctx) => ctx.reply('Бот запущен. /help — список команд.')));
+  bot.command('help', allowedChatOnly((ctx) => ctx.reply(helpLines.join('\n'))));
+
+  // Поиск билетов выключен по умолчанию (см. config.flightsEnabled): без флага
+  // сервис не регистрирует команды и не поднимает свой планировщик.
+  const services: Service[] = [new AiService(bot)];
+  if (config.flightsEnabled) services.unshift(new FlightsService(bot));
   for (const service of services) service.register(bot);
 
   bot.catch((err) => logger.error(`bot error: ${err.error}`));
